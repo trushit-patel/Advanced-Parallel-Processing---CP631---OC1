@@ -1,0 +1,32 @@
+The datatype here would let us send last 2 columns as a single MPI_send and MPI_rcv.&nbsp;
+
+Here is the pseudocode for the same.
+
+-Define custom datatype and perform communication
+
+Define column type as a vector&nbsp;
+
+Number of blocks = N
+
+
+Number of elements per block = 2
+
+Distance between start of each block in terms of elements = N1
+
+MPI_VECTOR = (N,2,N1,MPI_DOUBLE,&amp;column_type)
+
+-Now resizing to avoid gaps
+
+MPI_type_resize = (column_type, 0, 2*sizeof(double), resized column type
+
+-Commit the new datatype
+
+Now for process 0 which is the sending process:
+
+Mpi_send(&amp;A[0][N-2],1,resized column type, 1, 0, mpi_comm_world)
+
+Now for process 1 which is the receiving process:
+
+Mpi_recieve(&amp;B[0][0],1,resized_column,0,0,mpi_comm_world)
+
+To answer if one needs to define the custom datatype every time, No,we don't need to do this every time because 2D rows here are stored contiguously in memory. Thus, we can use MPI_DOUBLE with the appropriate amount of send and receive rows.&nbsp;

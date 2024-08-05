@@ -1,0 +1,30 @@
+Pseudocode:
+
+Initialize MPI environment
+Get rank and size
+
+Set N to MAX_ORDER
+Calculate rows_per_process as N / size
+Set columns_per_process to N
+
+Seed the random number generator
+
+Initialize the matrix with random values
+
+Find the maximum value along each column in the local part of the matrix
+for j from 0 to columns_per_process - 1
+	local_max[j] = matrix[0][j]
+	for i from 1 to rows_per_process - 1
+		if matrix[i][j] &gt; local_max[j]
+			local_max[j] = matrix[i][j]
+
+Reduce the local maximums to the global maximums along columns
+MPI_Reduce(local_max, global_max, columns_per_process, MPI_FLOAT, MPI_MAX, 0, MPI_COMM_WORLD)
+
+Process 0 prints the result
+if rank == 0
+	print "Maximum values along each column:"
+	for j from 0 to columns_per_process - 1
+		print global_max[j]
+
+Finalize MPI environment

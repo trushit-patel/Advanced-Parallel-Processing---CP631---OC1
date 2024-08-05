@@ -1,0 +1,17 @@
+Q2 
+Deadlock can occur in this code because all processes are calling MPI_Send first and waiting for a matching MPI_Recv to complete the communication. 
+Since MPI_Send is a blocking operation, it waits until the send buffer is available for reuse, which requires the matching MPI_Recv to be posted and completed. 
+Here's the sequence that leads to deadlock:
+
+    All Processes Call MPI_Send:
+        Each process tries to send a message to itself (since rank == my_rank in this loop).
+        MPI_Send blocks until the corresponding MPI_Recv is called.
+
+    Waiting for MPI_Recv:
+        Each process waits indefinitely for the receive to be posted and completed, but no process ever reaches the MPI_Recv call because they are all stuck in MPI_Send.
+
+Since all processes are stuck in MPI_Send and no process has progressed to call MPI_Recv, the program reaches a deadlock.
+
+Use non-blocking communication (MPI_Isend and MPI_Irecv) to allow processes to post sends and receives without waiting, 
+followed by MPI_Waitall to ensure all communications are completed. 
+This approach avoids deadlock by allowing communication to proceed concurrently.
