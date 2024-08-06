@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define SIZE 9
 #define MAX_PUZZLES 100
@@ -28,6 +29,8 @@ int main() {
         }
     }
 
+    clock_t begin_cpu = clock();
+
     for (i = 0; i < num_puzzles; i++) {
         printf("Solving puzzle %d:\n", i + 1);
         if (solve(puzzles[i])) {
@@ -37,6 +40,11 @@ int main() {
         }
         printf("\n");
     }
+
+    clock_t end_cpu = clock();
+    double cpu_time = (double)(end_cpu - begin_cpu)/CLOCKS_PER_SEC;
+
+    printf("Time taken: %f seconds \n", cpu_time);
 
     return 0;
 }
