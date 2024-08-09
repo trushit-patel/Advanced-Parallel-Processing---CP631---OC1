@@ -6,8 +6,7 @@
 #define MAX_PUZZLES 100
 
 int valid(int puzzle[][SIZE], int row, int column, int guess);
-int solve(int puzzle[][SIZE]);
-int find_empty_cell(int puzzle[][SIZE], int *row, int *column);
+int solve(int puzzle[][SIZE], int row, int column);
 void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]);
 void print_puzzle(int puzzle[][SIZE]);
 
@@ -33,7 +32,7 @@ int main() {
 
     for (i = 0; i < num_puzzles; i++) {
         printf("Solving puzzle %d:\n", i + 1);
-        if (solve(puzzles[i])) {
+        if (solve(puzzles[i], 0, 0)) {
             print_puzzle(puzzles[i]);
         } else {
             printf("NO SOLUTION FOUND\n");
@@ -62,35 +61,34 @@ int valid(int puzzle[][SIZE], int row, int column, int guess) {
     return 1;
 }
 
-int find_empty_cell(int puzzle[][SIZE], int *row, int *column) {
-    int x;
-    int y;
-    for (x = 0; x < SIZE; x++) {
-        for (y = 0; y < SIZE; y++) {
-            if (!puzzle[x][y]) {
-                *row = x;
-                *column = y;
-                return 1;
+int solve(int puzzle[][SIZE], int row, int column) {
+    if (row == SIZE) {
+        return 1;
+    }
+
+    if (puzzle[row][column] != 0) {
+        if (column == SIZE - 1) {
+            if (solve(puzzle, row + 1, 0)) return 1;
+        } else {
+            if (solve(puzzle, row, column + 1)) return 1;
+        }
+    } else {
+        int guess;
+        for (guess = 1; guess <= SIZE; guess++) {
+            if (valid(puzzle, row, column, guess)) {
+                puzzle[row][column] = guess;
+
+                if (column == SIZE - 1) {
+                    if (solve(puzzle, row + 1, 0)) return 1;
+                } else {
+                    if (solve(puzzle, row, column + 1)) return 1;
+                }
+
+                puzzle[row][column] = 0;
             }
         }
     }
-    return 0;
-}
 
-int solve(int puzzle[][SIZE]) {
-    int row, column;
-    int guess;
-
-    if (!find_empty_cell(puzzle, &row, &column)) return 1;
-
-    for (guess = 1; guess <= SIZE; guess++) {
-        if (valid(puzzle, row, column, guess)) {
-            puzzle[row][column] = guess;
-
-            if (solve(puzzle)) return 1;
-            puzzle[row][column] = 0;
-        }
-    }
     return 0;
 }
 
@@ -101,8 +99,7 @@ void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]) {
         exit(1);
     }
 
-    int i;
-    int j;
+    int i, j;
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < SIZE; j++) {
             fscanf(file, "%d", &puzzle[i][j]);
@@ -113,8 +110,7 @@ void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]) {
 }
 
 void print_puzzle(int puzzle[][SIZE]) {
-    int x;
-    int y;
+    int x, y;
 
     for (x = 0; x < SIZE; ++x) {
         for (y = 0; y < SIZE; ++y) {
