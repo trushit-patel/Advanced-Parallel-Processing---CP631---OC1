@@ -7,13 +7,13 @@
 #define MAX_PUZZLES 100
 
 int valid(int puzzle[][SIZE], int row, int column, int guess);
-int solve(int puzzle[][SIZE], int depth);
+int solve(int puzzle[][SIZE]);
 int find_empty_cell(int puzzle[][SIZE], int *row, int *column);
 void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]);
 void print_puzzle(int puzzle[][SIZE]);
 
 int main(int argc, char **argv) {
-    int puzzles[MAX_PUZZLES][SIZE][SIZE];
+    int puzzles[N][SIZE][SIZE];
     int num_puzzles = 0;
 
     // Read puzzles from files p1.txt to p95.txt
@@ -49,12 +49,16 @@ int main(int argc, char **argv) {
         
         printf("Solving puzzle %d by thread %d:\n", i + 1, omp_get_thread_num());
 
-        if (solve(puzzle_copy, 0)) {
-            print_puzzle(puzzle_copy);
-        } else {
-            printf("NO SOLUTION FOUND\n");
+        #pragma omp parallel default(none) shared(puzzle_copy) num_threads(atoi(argv[1]))
+        #pragma omp single nowait
+        {
+            if (solve(puzzle_copy)) {
+                print_puzzle(puzzle_copy);
+            } else {
+                printf("NO SOLUTION FOUND\n");
+            }
+            printf("\n");
         }
-        printf("\n");
     }
 
     double end_cpu = omp_get_wtime();
@@ -93,37 +97,36 @@ int find_empty_cell(int puzzle[][SIZE], int *row, int *column) {
     return 0;
 }
 
-int solve(int puzzle[][SIZE], int depth) {
+int solve(int puzzle[][SIZE]) {
     int row, column;
+    int guess;
 
     if (!find_empty_cell(puzzle, &row, &column)) return 1;
 
     int solved = 0;
-    int guess;
-    for (guess = 1; guess <= SIZE; guess++) {
-        if (valid(puzzle, row, column, guess)) {
-            puzzle[row][column] = guess;
+    
+    #pragma omp parallel shared(puzzle, solved)
+    {
+        #pragma omp single
+        {
+            for (guess = 1; guess <= SIZE; guess++) {
+                if (valid(puzzle, row, column, guess)) {
+                    puzzle[row][column] = guess;
 
-            if (depth < 1) {  // Depth limit for task creation
-                #pragma omp task firstprivate(puzzle, row, column, depth) shared(solved)
-                {
-                    if (solve(puzzle, depth + 1)) {
-                        #pragma omp atomic write
-                        solved = 1;
+                    #pragma omp task firstprivate(puzzle, row, column) shared(solved)
+                    {
+                        if (solve(puzzle)) {
+                            #pragma omp atomic write
+                            solved = 1;
+                        }
                     }
-                }
-            } else {
-                if (solve(puzzle, depth + 1)) {
-                    solved = 1;
+                    #pragma omp taskwait
+                    if (solved) break;  // Exit loop if solution found
+                    puzzle[row][column] = 0;
                 }
             }
-
-            #pragma omp taskwait
-            if (solved) break;
-            puzzle[row][column] = 0;
         }
     }
-
     return solved;
 }
 
@@ -134,7 +137,8 @@ void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]) {
         exit(1);
     }
 
-    int i, j;
+    int i;
+    int j;
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < SIZE; j++) {
             fscanf(file, "%d", &puzzle[i][j]);
@@ -145,7 +149,8 @@ void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]) {
 }
 
 void print_puzzle(int puzzle[][SIZE]) {
-    int x, y;
+    int x;
+    int y;
 
     for (x = 0; x < SIZE; ++x) {
         for (y = 0; y < SIZE; ++y) {

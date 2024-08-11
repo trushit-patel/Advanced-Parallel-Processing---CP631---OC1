@@ -3,67 +3,10 @@
 #include <time.h>
 #include <omp.h>
 
+#include <mpi.h>
+
 #define SIZE 9
-#define MAX_PUZZLES 100
-
-int valid(int puzzle[][SIZE], int row, int column, int guess);
-int solve(int puzzle[][SIZE], int depth);
-int find_empty_cell(int puzzle[][SIZE], int *row, int *column);
-void read_puzzle_from_file(const char *filename, int puzzle[][SIZE]);
-void print_puzzle(int puzzle[][SIZE]);
-
-int main(int argc, char **argv) {
-    int puzzles[MAX_PUZZLES][SIZE][SIZE];
-    int num_puzzles = 0;
-
-    // Read puzzles from files p1.txt to p95.txt
-    char filename[20];
-    int i;
-
-    for (i = 1; i <= 95; i++) {
-        snprintf(filename, sizeof(filename), "puzzles/p%d.txt", i);
-        FILE *file = fopen(filename, "r");
-        if (file) {
-            fclose(file);
-            read_puzzle_from_file(filename, puzzles[num_puzzles]);
-            num_puzzles++;
-        }
-    }
-
-    double begin_cpu = omp_get_wtime();
-
-    #pragma omp parallel for schedule(dynamic)
-    for (i = 0; i < num_puzzles; i++) {
-        int puzzle_copy[SIZE][SIZE];
-        
-        // Copy puzzle to avoid data races
-        int row;
-        int col;
-
-        #pragma omp parallel for collapse(2)
-        for (row = 0; row < SIZE; row++) {
-            for (col = 0; col < SIZE; col++) {
-                puzzle_copy[row][col] = puzzles[i][row][col];
-            }
-        }
-        
-        printf("Solving puzzle %d by thread %d:\n", i + 1, omp_get_thread_num());
-
-        if (solve(puzzle_copy, 0)) {
-            print_puzzle(puzzle_copy);
-        } else {
-            printf("NO SOLUTION FOUND\n");
-        }
-        printf("\n");
-    }
-
-    double end_cpu = omp_get_wtime();
-    double cpu_time = end_cpu - begin_cpu;
-
-    printf("Time taken: %f seconds \n", cpu_time);
-
-    return 0;
-}
+#define N 95
 
 int valid(int puzzle[][SIZE], int row, int column, int guess) {
     int corner_x = row / 3 * 3;
@@ -104,7 +47,7 @@ int solve(int puzzle[][SIZE], int depth) {
         if (valid(puzzle, row, column, guess)) {
             puzzle[row][column] = guess;
 
-            if (depth < 1) {  // Depth limit for task creation
+            if (depth < 2) {  // Depth limit for task creation
                 #pragma omp task firstprivate(puzzle, row, column, depth) shared(solved)
                 {
                     if (solve(puzzle, depth + 1)) {
@@ -119,7 +62,7 @@ int solve(int puzzle[][SIZE], int depth) {
             }
 
             #pragma omp taskwait
-            if (solved) break;
+            // if (solved) break;
             puzzle[row][column] = 0;
         }
     }
@@ -153,4 +96,80 @@ void print_puzzle(int puzzle[][SIZE]) {
         }
         printf("\n");
     }
+}
+
+
+int main(int argc, char **argv) {
+    int puzzles[N][SIZE][SIZE];
+    // int N = 0;
+
+    int local_puzzle[SIZE][SIZE];
+    int rank, p;
+    int i;
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &p);
+
+     if (p != N) {
+        if (rank == 0) {
+            printf("Please run the program with exactly %d processes.\n", N);
+        }
+        MPI_Finalize();
+        exit(1);
+    }
+
+    // Master process reads puzzles from files
+    if (rank == 0) {
+        char filename[20];
+        for (i = 0; i < N; i++) {
+            snprintf(filename, sizeof(filename), "puzzles/p%d.txt", i + 1);
+            read_puzzle_from_file(filename, puzzles[i]);
+        }
+    }
+
+    MPI_Scatter(puzzles, SIZE * SIZE, MPI_INT, local_puzzle, SIZE * SIZE, MPI_INT, 0, MPI_COMM_WORLD);
+
+    double begin_cpu = MPI_Wtime();
+
+    // double begin_cpu = omp_get_wtime();
+
+    // #pragma omp parallel for schedule(dynamic)
+    // for (i = 0; i < N; i++) {
+        
+    // }
+
+    int puzzle_copy[SIZE][SIZE];
+        
+    // Copy puzzle to avoid data races
+    int row;
+    int col;
+
+    // #pragma omp parallel for collapse(2)
+    for (row = 0; row < SIZE; row++) {
+        for (col = 0; col < SIZE; col++) {
+            puzzle_copy[row][col] = puzzles[i][row][col];
+        }
+    }
+    
+    // printf("Solving puzzle %d by thread %d:\n", i + 1, omp_get_thread_num());
+
+    if (solve(puzzle_copy, 0)) {
+        print_puzzle(puzzle_copy);
+    } else {
+        printf("NO SOLUTION FOUND\n");
+    }
+    printf("\n");
+
+    // double end_cpu = omp_get_wtime();
+    double end_cpu = MPI_Wtime();
+
+    if(rank == 0){
+        double cpu_time = end_cpu - begin_cpu;
+        printf("Time taken: %f seconds \n", cpu_time);
+    }
+
+    MPI_Finalize();
+
+    return 0;
 }
