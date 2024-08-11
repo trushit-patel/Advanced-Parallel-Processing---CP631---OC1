@@ -40,9 +40,9 @@ simple = [24.21, 24.09, 26.48, 26.64, 26.68]
 # Plot all times in one graph
 plt.figure(figsize=(10, 6))
 
-plt.plot(num_puzzles, serial, marker='o', color='b', label='Serial Time')
-plt.plot(num_puzzles, simple, marker='o', color='r', label='Simple Time')
-plt.plot(num_puzzles, complex, marker='o', color='g', label='Complex Time')
+plt.plot(num_puzzles, serial, marker='o', color='b', label='Serial Approach')
+plt.plot(num_puzzles, simple, marker='o', color='r', label='Simple Approach')
+plt.plot(num_puzzles, complex, marker='o', color='g', label='Complex Approach')
 
 plt.title('Time vs Number of Puzzles')
 plt.xlabel('Number of Puzzles')
