@@ -72,7 +72,7 @@ cpu_time = [0.558, 0.539, 0.520, 0.462, 0.461, 0.424, 0.458, 0.457, 0.468, 3.24,
 # Plot all times in one graph
 plt.figure(figsize=(10, 6))
 
-plt.plot(num_threads, cpu_time, marker='o', color='b', label='CPU Time')
+plt.plot(num_threads, cpu_time, marker='o', color='b', label='Execution Time')
 
 plt.title('Time vs Number of Threads (Logarithmic Scale)')
 plt.xlabel('Number of Threads')
