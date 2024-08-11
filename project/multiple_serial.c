@@ -3,7 +3,7 @@
 #include <time.h>
 
 #define SIZE 9
-#define MAX_PUZZLES 100
+#define MAX_PUZZLES 20
 
 int valid(int puzzle[][SIZE], int row, int column, int guess);
 int solve(int puzzle[][SIZE], int row, int column);
@@ -18,7 +18,7 @@ int main() {
     char filename[20];
     int i;
 
-    for (i = 1; i <= 95; i++) {
+    for (i = 1; i <= MAX_PUZZLES; i++) {
         snprintf(filename, sizeof(filename), "puzzles/p%d.txt", i);
         FILE *file = fopen(filename, "r");
         if (file) {
