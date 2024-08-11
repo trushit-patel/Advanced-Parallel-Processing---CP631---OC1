@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 
 # Data for the bar chart
-approaches = ['Simple Approach', 'Complex Approach', 'Serial']
+approaches = ['Simple Parallel', 'Complex Parallel', 'Serial']
 execution_times = [26.59, 35.52, 62.4]
 
 # Create the bar chart
 plt.bar(approaches, execution_times, color=['blue', 'orange', 'red'])
 
 # Add title and labels
-plt.title('Comparison of Mean Execution Times')
+plt.title('Mean Execution Times while solving multiple puzzles')
 plt.xlabel('Approach')
 plt.ylabel('Execution Time (seconds)')
 
